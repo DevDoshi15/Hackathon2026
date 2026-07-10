@@ -7,7 +7,7 @@ from hackathon2026.models.Api import PromptRouteDecision
 from hackathon2026.utils.env import load_project_env
 
 ROUTER_AGENT_INSTRUCTIONS = """
-You classify a user prompt into exactly one flow for a travel/package booking API.
+You classify a user prompt into exactly one flow for a travel/cruise booking API.
 
 Return booking only when the user is asking to create, make, continue, or prepare a booking,
 or when they explicitly ask for a request/response up to a booking workflow step.
@@ -20,8 +20,23 @@ Important distinction:
 - "give me response till category step" is booking because it asks for a booking response up to a step.
 - "give me request till cabin step" is booking because it asks for a booking request up to a step.
 
-Use the furthest mentioned workflow step as step. If no step is mentioned for a booking,
-use confirmation. For casual questions, use general.
+The booking workflow has exactly these steps, in this order:
+1. package - resolve the package/point-of-sale (package id or cruiseline id).
+2. category - pick a stateroom category and fare code.
+3. cabin - pick a specific cabin number.
+4. cabin_hold - place a temporary hold on that cabin.
+5. price - get the authoritative price and payment schedule.
+6. tokenize_card - tokenize a credit card for payment.
+7. create_reservation - commit the booking with payment and get a confirmation number.
+
+Use the furthest EXPLICITLY mentioned step as step - e.g. "till cabin hold step" -> cabin_hold,
+"till price reservation" -> price, "till tokenize card"/"till card token" -> tokenize_card,
+"till create reservation"/"till confirmation"/"complete the booking"/"confirm the booking" ->
+create_reservation. Do not infer create_reservation just because the user asked to "create a
+booking" in general - that phrase alone starts the flow, it doesn't request the final step.
+
+If no step is explicitly mentioned for a booking, use general - the booking flow will then run
+all the way through on its own. For casual questions, also use general.
 """
 
 

@@ -1,4 +1,5 @@
 import os
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -26,42 +27,65 @@ class RagAnswer(BaseModel):
 
 
 class RagAnswerService:
+    def __init__(
+        self,
+        vector_store_env: str = "OPENAI_VECTOR_STORE_ID",
+        manifest_env: str = "KB_CHUNK_MANIFEST",
+        manifest_default: str = "hackathon2026/data/rag/chunks.jsonl",
+        not_found_message: str = "I could not find relevant KB context for this question.",
+    ) -> None:
+        self.vector_store_env = vector_store_env
+        self.manifest_env = manifest_env
+        self.manifest_default = manifest_default
+        self.not_found_message = not_found_message
+
     def answer(self, question: str) -> dict[str, Any]:
         load_project_env()
-        vector_store_id = os.getenv("OPENAI_VECTOR_STORE_ID", "")
-        manifest_path = Path(os.getenv("KB_CHUNK_MANIFEST", "hackathon2026/data/rag/chunks.jsonl"))
+        vector_store_id = os.getenv(self.vector_store_env, "")
+        manifest_path = Path(os.getenv(self.manifest_env, self.manifest_default))
 
         if not vector_store_id:
             return {
-                "answer": "RAG is not configured yet. Run the ingest script and set OPENAI_VECTOR_STORE_ID.",
+                "answer": f"RAG is not configured yet. Run the ingest script and set {self.vector_store_env}.",
                 "citations": [],
                 "chunks": [],
                 "configured": False,
             }
 
-        chunks = hybrid_retrieve(
-            question=question,
-            vector_store_id=vector_store_id,
-            manifest_path=manifest_path,
-        )
-        if not chunks:
+        try:
+            chunks = hybrid_retrieve(
+                question=question,
+                vector_store_id=vector_store_id,
+                manifest_path=manifest_path,
+            )
+            if not chunks:
+                return {
+                    "answer": self.not_found_message,
+                    "citations": [],
+                    "chunks": [],
+                    "configured": True,
+                }
+
+            reranked_chunks = self._rerank(question, chunks)
+            selected_chunks = reranked_chunks[:5]
+            answer = self._generate_answer(question, selected_chunks)
+
             return {
-                "answer": "I could not find relevant KB context for this question.",
+                "answer": answer.answer,
+                "citations": answer.citations,
+                "chunks": [_citation_payload(chunk) for chunk in selected_chunks],
+                "configured": True,
+            }
+        except Exception as error:
+            print(f"[rag] answer failed: {error}")
+            traceback.print_exc()
+            return {
+                "answer": f"Something went wrong while answering this question: {error}",
                 "citations": [],
                 "chunks": [],
                 "configured": True,
+                "error": str(error),
             }
-
-        reranked_chunks = self._rerank(question, chunks)
-        selected_chunks = reranked_chunks[:5]
-        answer = self._generate_answer(question, selected_chunks)
-
-        return {
-            "answer": answer.answer,
-            "citations": answer.citations,
-            "chunks": [_citation_payload(chunk) for chunk in selected_chunks],
-            "configured": True,
-        }
 
     def _rerank(self, question: str, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not chunks:
@@ -138,3 +162,9 @@ def _citation_payload(chunk: dict[str, Any]) -> dict[str, Any]:
 
 load_project_env()
 rag_answer_service = RagAnswerService()
+request_response_rag_service = RagAnswerService(
+    vector_store_env="REQUEST_RESPONSE_VECTOR_STORE_ID",
+    manifest_env="REQUEST_RESPONSE_CHUNK_MANIFEST",
+    manifest_default="hackathon2026/data/rag/request_response_chunks.jsonl",
+    not_found_message="I could not find relevant request/response context for this question.",
+)

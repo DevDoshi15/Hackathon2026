@@ -19,7 +19,9 @@ def load_markdown_articles(source_dir: Path) -> list[KnowledgeArticle]:
 def parse_markdown_article(path: Path) -> KnowledgeArticle:
     raw_text = path.read_text(encoding="utf-8")
     url = _extract_field(raw_text, "URL")
-    article_id = _extract_field(raw_text, "ID")
+    # Not every corpus has an explicit ID header (e.g. Request-Response docs) - fall back
+    # to the filename so chunk_ids (article_id:NNNN) stay unique instead of colliding.
+    article_id = _extract_field(raw_text, "ID") or path.stem
     title = _extract_title(raw_text) or path.stem.replace("-", " ").title()
     content = _strip_metadata(raw_text).strip()
 

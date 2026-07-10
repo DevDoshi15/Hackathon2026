@@ -1,0 +1,204 @@
+# Hold Cabin
+
+**Path:** Create Reservation > Create Reservation With Grats For RCCL > Hold Cabin
+
+---
+
+## Request Details
+
+**Method:** `POST`
+
+**URL:** `{{BaseUrl}}/v2/reservation/cruise/holdcabin`
+
+### Headers
+
+```
+SiteItemId: {{Nitro.Sandbox.SiteItemId}}
+```
+
+### Authentication
+
+**Type:** basic
+
+```
+password: {{Nitro.Sandbox.ClientSecret}}
+username: {{Nitro.Sandbox.ClientId}}
+```
+
+### Request Body
+
+```json
+{
+    "cruiseReservation": {
+        "pos": {
+            "currency": "USD"
+        },
+        "customerReferences": [
+            {
+                "rph": 1,
+                "isPrimaryContact": true
+            },
+            {
+                "rph": 2
+            }
+        ],
+        "cruise": {
+            "packageId": 1238898,
+            "packageTourId": -1
+        },
+        "categories": [
+            {
+                "code": "OC",
+                "fare": {
+                    "fareCode": {
+                        "code": "DISC50" // We will pass the farecode along with category to fetch the list of cabins & addons
+                    }
+                },
+                "cabins": [
+                    {
+                        "number": "7002"
+                    }
+                ]
+            }
+        ]
+    },
+    "customers": [
+        {
+            "rph": 1,
+            "age": 52,
+            "address": {
+                "country": {
+                    "id": "US"
+                }
+            }
+        },
+        {
+            "rph": 2,
+            "age": 57
+        }
+    ],
+    "trackingInfo": {
+        "token": "EQTEMPKEN"
+    }
+}
+```
+
+## Response
+
+**Status:** OK (200)
+
+### Response Headers
+
+```
+Server: nginx
+Date: Mon, 20 Feb 2023 08:54:57 GMT
+Content-Type: application/json; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Served-From: 208.64.67.223
+X-Powered-By: ASP.NET
+X-Server-Ip: 192.168.214.13
+Content-Encoding: gzip
+```
+
+### Response Body
+
+```json
+{
+  "isSucceed": true,
+  "data": {
+    "trackingInfo": {
+      "requestId": "1eb879a3-3833-4e42-b1c4-85659b4cd534",
+      "timeStamp": "20-Feb-2023 03:54:54",
+      "token": "EQTEMPKEN"
+    },
+    "cruiseReservation": {
+      "departureArrivalInfo": {
+        "departureDateTime": "05-May-2023 00:00:00",
+        "arrivalDateTime": "08-May-2023 00:00:00",
+        "departureCityId": "MIA",
+        "arrivalCityId": "MIA",
+        "duration": 3
+      },
+      "pos": {
+        "id": 2112,
+        "apiId": "NCL",
+        "officeId": "O100US6797",
+        "system": "Test",
+        "currency": "USD",
+        "type": "B2C"
+      },
+      "customerReferences": [
+        {
+          "rph": 1,
+          "isPrimaryContact": true
+        },
+        {
+          "rph": 2
+        }
+      ],
+      "insurances": [
+        {
+          "code": "PLT"
+        },
+        {
+          "code": "STD"
+        }
+      ],
+      "cruise": {
+        "packageId": 1238898,
+        "packageTourId": -1,
+        "cruiseline": {
+          "id": 6,
+          "ships": [
+            {
+              "id": 1179
+            }
+          ]
+        },
+        "itinerary": {
+          "id": 363194,
+          "destination": {
+            "id": 7
+          }
+        },
+        "voyage": {
+          "departureDateTime": "05-May-2023 00:00:00",
+          "arrivalDateTime": "08-May-2023 00:00:00",
+          "departureCityId": "MIA",
+          "arrivalCityId": "MIA",
+          "code": "17183730"
+        },
+        "transportationType": 29
+      },
+      "dinings": [
+        {
+          "id": 4,
+          "code": "FREESTYLE",
+          "name": "Freestyle",
+          "tableSizeOptions": []
+        }
+      ]
+    },
+    "customers": [
+      {
+        "rph": 1,
+        "age": 52,
+        "address": {
+          "country": {
+            "id": "US"
+          }
+        }
+      },
+      {
+        "rph": 2,
+        "age": 57
+      }
+    ]
+  }
+}
+```
+
+---
+
+*Generated from Postman Collection: NitroAPI Sandbox*

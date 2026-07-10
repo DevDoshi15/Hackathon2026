@@ -16,7 +16,8 @@ BOOKING_KEYWORDS = {
     "prepare a booking",
     "continue booking",
     "continue a booking",
-    "while making booking"
+    "while making booking",
+
 }
 
 STEP_REQUEST_KEYWORDS = {
@@ -36,22 +37,32 @@ STEP_KEYWORDS = {
     "package": "package",
     "package id": "package",
     "category": "category",
+    "hold cabin": "cabin_hold",
+    "cabin hold": "cabin_hold",
     "cabin": "cabin",
-    "traveller": "traveller",
-    "traveler": "traveller",
-    "guest": "traveller",
-    "payment": "payment",
-    "confirm": "confirmation",
-    "confirmation": "confirmation",
+    "price reservation": "price",
+    "payment schedule": "price",
+    "price": "price",
+    "tokenize card": "tokenize_card",
+    "tokenize": "tokenize_card",
+    "card token": "tokenize_card",
+    "create reservation": "create_reservation",
+    "complete booking": "create_reservation",
+    "complete the booking": "create_reservation",
+    "finish booking": "create_reservation",
+    "confirm booking": "create_reservation",
+    "confirm the booking": "create_reservation",
+    "confirmation": "create_reservation",
 }
 
 WORKFLOW_STEPS = [
     "package",
     "category",
     "cabin",
-    "traveller",
-    "payment",
-    "confirmation",
+    "cabin_hold",
+    "price",
+    "tokenize_card",
+    "create_reservation",
 ]
 
 
@@ -88,43 +99,7 @@ def detect_requested_step(prompt: str) -> str:
     if matched_steps:
         return max(matched_steps, key=WORKFLOW_STEPS.index)
 
-    return "confirmation" if is_booking_workflow(prompt) else "general"
-
-
-def steps_until(step: str) -> list[str]:
-    if step not in WORKFLOW_STEPS:
-        return []
-    return WORKFLOW_STEPS[: WORKFLOW_STEPS.index(step) + 1]
-
-
-def build_booking_workflow_from_step(prompt: str, requested_step: str) -> dict[str, Any]:
-    if requested_step == "general":
-        requested_step = "confirmation"
-
-    completed_steps = steps_until(requested_step)
-
-    return {
-        "flow": "booking",
-        "intent": "booking_workflow",
-        "step": requested_step,
-        "completed_steps": completed_steps,
-        "message": f"Booking workflow response prepared till {requested_step} step.",
-        "booking_request": {
-            "prompt": prompt,
-            "package_reference_required": "package" in completed_steps,
-            "next_step": next_step_after(requested_step),
-        },
-    }
-
-
-def next_step_after(step: str) -> str | None:
-    if step not in WORKFLOW_STEPS:
-        return WORKFLOW_STEPS[0]
-
-    next_step_index = WORKFLOW_STEPS.index(step) + 1
-    if next_step_index >= len(WORKFLOW_STEPS):
-        return None
-    return WORKFLOW_STEPS[next_step_index]
+    return "general"
 
 
 def build_casual_response(prompt: str) -> dict[str, Any]:

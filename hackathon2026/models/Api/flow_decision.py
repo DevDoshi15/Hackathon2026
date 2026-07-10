@@ -13,9 +13,10 @@ class PromptRouteDecision(BaseModel):
         "package",
         "category",
         "cabin",
-        "traveller",
-        "payment",
-        "confirmation",
+        "cabin_hold",
+        "price",
+        "tokenize_card",
+        "create_reservation",
         "general",
     ]
     reason: str

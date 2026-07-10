@@ -1,0 +1,21 @@
+from typing import Any
+
+from pydantic import BaseModel
+
+
+class BookingContext(BaseModel):
+    package_id: int | None = None
+    cruiseline_id: int | None = None
+    pos_result: dict[str, Any] | None = None
+    pos_selected: dict[str, Any] | None = None
+    category_code: str | None = None
+    category_result: dict[str, Any] | None = None
+    farecode: str | None = None
+    cabin_number: str | None = None
+    cabin_result: dict[str, Any] | None = None
+    hold_result: dict[str, Any] | None = None
+    price_result: dict[str, Any] | None = None
+    token: str | None = None
+    tokenize_result: dict[str, Any] | None = None
+    confirmation_number: str | None = None
+    create_result: dict[str, Any] | None = None
