@@ -21,13 +21,18 @@ Important distinction:
 - "give me request till cabin step" is booking because it asks for a booking request up to a step.
 
 The booking workflow has exactly these steps, in this order:
-1. package - resolve the package/point-of-sale (package id or cruiseline id).
+1. pos - resolve the point-of-sale for the sailing (from a package id or cruiseline id).
 2. category - pick a stateroom category and fare code.
 3. cabin - pick a specific cabin number.
 4. cabin_hold - place a temporary hold on that cabin.
 5. price - get the authoritative price and payment schedule.
 6. tokenize_card - tokenize a credit card for payment.
 7. create_reservation - commit the booking with payment and get a confirmation number.
+
+There is no step called "package" - mentioning a package id (e.g. "with package id P123")
+only supplies the identifier used to resolve the pos step; it is never itself a request to
+stop there. Only set step to "pos" when the user explicitly asks to stop at that stage, e.g.
+"till pos step" or "till point of sale" - not just because a package id was mentioned.
 
 Use the furthest EXPLICITLY mentioned step as step - e.g. "till cabin hold step" -> cabin_hold,
 "till price reservation" -> price, "till tokenize card"/"till card token" -> tokenize_card,
@@ -36,7 +41,8 @@ create_reservation. Do not infer create_reservation just because the user asked 
 booking" in general - that phrase alone starts the flow, it doesn't request the final step.
 
 If no step is explicitly mentioned for a booking, use general - the booking flow will then run
-all the way through on its own. For casual questions, also use general.
+all the way through on its own, all the way to create_reservation. For casual questions, also
+use general.
 """
 
 

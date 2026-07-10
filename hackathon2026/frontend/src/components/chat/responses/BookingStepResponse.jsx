@@ -16,9 +16,9 @@ import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 // The seven-step booking workflow, mirroring the backend's WORKFLOW_STEPS order:
-// package -> category -> cabin -> cabin_hold -> price -> tokenize_card -> create_reservation.
+// pos -> category -> cabin -> cabin_hold -> price -> tokenize_card -> create_reservation.
 const STEPS = [
-  { key: "package", label: "Package", Icon: Package },
+  { key: "pos", label: "POS", Icon: Package },
   { key: "category", label: "Category", Icon: LayoutGrid },
   { key: "cabin", label: "Cabin", Icon: BedDouble },
   { key: "cabin_hold", label: "Hold", Icon: Lock },

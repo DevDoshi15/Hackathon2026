@@ -94,7 +94,7 @@ function summarizeBookingData(step, payload) {
   const response = payload.response
 
   switch (step) {
-    case "package": {
+    case "pos": {
       const pos = payload.pos_selected
       if (!pos) return {}
       return {

@@ -44,14 +44,12 @@ export function makeAssistantMessage(type, prompt = "") {
         type: "booking",
         booking: {
           step: "cabin",
-          completedSteps: ["package", "category", "cabin"],
-          message: "Cabin selected. Next, add traveller details to continue.",
+          status: "success",
+          message: "Cabin selected.",
           data: {
-            package_id: "P-10294",
-            category: "Balcony",
-            cabin: "Deck 9 · #9210",
-            guests: "2 adults",
-            next_step: "traveller",
+            Cabin: "9210",
+            Location: "Port",
+            Occupancy: "0-3",
           },
         },
       }

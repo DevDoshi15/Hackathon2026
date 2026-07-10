@@ -65,10 +65,10 @@ class BookingOrchestrator:
         if early_exit:
             return early_exit
 
-        if requested_step == "package":
-            print("[orchestrator] requested step is package, stopping here")
+        if requested_step == "pos":
+            print("[orchestrator] requested step is pos, stopping here")
             return _payload(
-                "package",
+                "pos",
                 "Point-of-sale lookup succeeded.",
                 context.pos_result,
                 pos_selected=context.pos_selected,
@@ -150,7 +150,7 @@ class BookingOrchestrator:
 
         if context.package_id is None and context.cruiseline_id is None:
             print("[orchestrator] no identifier found, asking user for a package id")
-            return _payload("package", "I need a package id (or cruiseline id) to continue this booking. Please provide one.")
+            return _payload("pos", "I need a package id (or cruiseline id) to continue this booking. Please provide one.")
         return None
 
     async def _run_pos(self, context: BookingContext) -> dict[str, Any] | None:
@@ -163,7 +163,7 @@ class BookingOrchestrator:
 
         if not context.pos_result.get("is_succeed"):
             print("[orchestrator] POS lookup failed, returning failure payload")
-            return _payload("package", "Point-of-sale lookup failed for this booking.", context.pos_result)
+            return _payload("pos", "Point-of-sale lookup failed for this booking.", context.pos_result)
         return None
 
     def _select_pos(self, context: BookingContext) -> dict[str, Any] | None:
@@ -171,7 +171,7 @@ class BookingOrchestrator:
         selection = pos_service.select_test_pos(context.pos_result.get("point_of_sales", []))
         if selection["selected"] is None:
             print(f"[orchestrator] no Test-mode POS available: {selection['error']}")
-            return _payload("package", selection["error"], context.pos_result)
+            return _payload("pos", selection["error"], context.pos_result)
 
         context.pos_selected = selection["selected"]
         print(f"[orchestrator] selected pos id={context.pos_selected.get('id')} currency={context.pos_selected.get('currency')}")

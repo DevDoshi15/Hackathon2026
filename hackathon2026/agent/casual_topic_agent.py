@@ -7,17 +7,19 @@ from hackathon2026.models.Api import CasualTopicDecision
 from hackathon2026.utils.env import load_project_env
 
 CASUAL_TOPIC_AGENT_INSTRUCTIONS = """
-You classify a casual/general (non-booking) question into exactly one topic for a
-cruise/travel booking API knowledge base.
+You decide whether a casual/general (non-booking) question needs API request/response
+contract details in addition to the general knowledge base. The knowledge base is always
+searched - this decision only controls whether the request/response API-contract corpus
+is ALSO searched alongside it.
 
 Use "request_response" when the user is asking about a specific API's request or response
 shape, fields, payload, endpoint, or a concrete example request/response - e.g. "what does
 the cabin availability response look like", "show me the request for creating a booking",
 "what fields does the price reservation response have".
 
-Use "kb" for everything else - general policy/process/reference questions that are not
-about a specific API request/response shape, e.g. "what payment schedule types exist",
-"which test credit cards can I use", "what does supplier ID 982 map to".
+Use "kb" when the question is general policy/process/reference and does not need a specific
+API request/response shape - e.g. "what payment schedule types exist", "which test credit
+cards can I use", "what does supplier ID 982 map to".
 """
 
 

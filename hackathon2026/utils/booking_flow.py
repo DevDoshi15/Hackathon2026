@@ -34,8 +34,11 @@ STEP_REQUEST_KEYWORDS = {
 }
 
 STEP_KEYWORDS = {
-    "package": "package",
-    "package id": "package",
+    # Note: "package id"/"package" are NOT here - mentioning a package id supplies
+    # the identifier, it is not a request to stop at any particular step.
+    "pos step": "pos",
+    "point of sale": "pos",
+    "office credentials": "pos",
     "category": "category",
     "hold cabin": "cabin_hold",
     "cabin hold": "cabin_hold",
@@ -56,7 +59,7 @@ STEP_KEYWORDS = {
 }
 
 WORKFLOW_STEPS = [
-    "package",
+    "pos",
     "category",
     "cabin",
     "cabin_hold",

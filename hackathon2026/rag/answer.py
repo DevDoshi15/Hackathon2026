@@ -39,12 +39,25 @@ class RagAnswerService:
         self.manifest_default = manifest_default
         self.not_found_message = not_found_message
 
-    def answer(self, question: str) -> dict[str, Any]:
+    def is_configured(self) -> bool:
+        load_project_env()
+        return bool(os.getenv(self.vector_store_env, ""))
+
+    def retrieve(self, question: str) -> list[dict[str, Any]]:
         load_project_env()
         vector_store_id = os.getenv(self.vector_store_env, "")
-        manifest_path = Path(os.getenv(self.manifest_env, self.manifest_default))
-
         if not vector_store_id:
+            return []
+
+        manifest_path = Path(os.getenv(self.manifest_env, self.manifest_default))
+        return hybrid_retrieve(
+            question=question,
+            vector_store_id=vector_store_id,
+            manifest_path=manifest_path,
+        )
+
+    def answer(self, question: str) -> dict[str, Any]:
+        if not self.is_configured():
             return {
                 "answer": f"RAG is not configured yet. Run the ingest script and set {self.vector_store_env}.",
                 "citations": [],
@@ -53,11 +66,7 @@ class RagAnswerService:
             }
 
         try:
-            chunks = hybrid_retrieve(
-                question=question,
-                vector_store_id=vector_store_id,
-                manifest_path=manifest_path,
-            )
+            chunks = self.retrieve(question)
             if not chunks:
                 return {
                     "answer": self.not_found_message,
@@ -66,16 +75,7 @@ class RagAnswerService:
                     "configured": True,
                 }
 
-            reranked_chunks = self._rerank(question, chunks)
-            selected_chunks = reranked_chunks[:5]
-            answer = self._generate_answer(question, selected_chunks)
-
-            return {
-                "answer": answer.answer,
-                "citations": answer.citations,
-                "chunks": [_citation_payload(chunk) for chunk in selected_chunks],
-                "configured": True,
-            }
+            return _rerank_and_generate(question, chunks)
         except Exception as error:
             print(f"[rag] answer failed: {error}")
             traceback.print_exc()
@@ -87,43 +87,105 @@ class RagAnswerService:
                 "error": str(error),
             }
 
-    def _rerank(self, question: str, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+
+def answer_casual_question(question: str, include_request_response: bool) -> dict[str, Any]:
+    """Always retrieves from the KB store; additionally pulls in the Request-Response
+    (API contract) store when the prompt is asking about a specific request/response
+    shape, merging both into one reranked answer rather than picking exactly one store.
+    """
+    if not rag_answer_service.is_configured():
+        return {
+            "answer": f"RAG is not configured yet. Run the ingest script and set {rag_answer_service.vector_store_env}.",
+            "citations": [],
+            "chunks": [],
+            "configured": False,
+        }
+
+    try:
+        chunks = rag_answer_service.retrieve(question)
+        sources_used = ["kb"] if chunks else []
+
+        if include_request_response:
+            rr_chunks = request_response_rag_service.retrieve(question)
+            if rr_chunks:
+                sources_used.append("request_response")
+            chunks = chunks + rr_chunks
+
         if not chunks:
-            return []
+            return {
+                "answer": "I could not find relevant context for this question.",
+                "citations": [],
+                "chunks": [],
+                "configured": True,
+                "sources_used": sources_used,
+            }
 
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    "Rerank knowledge chunks for answering the question. Score each chunk from 0 to 100. Prefer exact API, field, table, enum, and workflow evidence.",
-                ),
-                ("human", "Question:\n{question}\n\nChunks:\n{chunks}"),
-            ]
-        )
-        model = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
-        chain = prompt | model.with_structured_output(RerankedChunks)
-        rerank_result = chain.invoke({"question": question, "chunks": _format_chunks_for_prompt(chunks)})
-        scores = {chunk.chunk_id: chunk.relevance_score for chunk in rerank_result.chunks}
+        result = _rerank_and_generate(question, chunks)
+        result["sources_used"] = sources_used
+        return result
+    except Exception as error:
+        print(f"[rag] combined answer failed: {error}")
+        traceback.print_exc()
+        return {
+            "answer": f"Something went wrong while answering this question: {error}",
+            "citations": [],
+            "chunks": [],
+            "configured": True,
+            "error": str(error),
+        }
 
-        return sorted(
-            chunks,
-            key=lambda chunk: scores.get(_chunk_id(chunk), 0),
-            reverse=True,
-        )
 
-    def _generate_answer(self, question: str, chunks: list[dict[str, Any]]) -> RagAnswer:
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    "Answer using only the provided context. Include citations using the article title and URL. If the context does not answer the question, say what is missing.",
-                ),
-                ("human", "Question:\n{question}\n\nContext:\n{context}"),
-            ]
-        )
-        model = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
-        chain = prompt | model.with_structured_output(RagAnswer)
-        return chain.invoke({"question": question, "context": _format_chunks_for_prompt(chunks)})
+def _rerank_and_generate(question: str, chunks: list[dict[str, Any]]) -> dict[str, Any]:
+    reranked_chunks = _rerank(question, chunks)
+    selected_chunks = reranked_chunks[:5]
+    answer = _generate_answer(question, selected_chunks)
+
+    return {
+        "answer": answer.answer,
+        "citations": answer.citations,
+        "chunks": [_citation_payload(chunk) for chunk in selected_chunks],
+        "configured": True,
+    }
+
+
+def _rerank(question: str, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not chunks:
+        return []
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Rerank knowledge chunks for answering the question. Score each chunk from 0 to 100. Prefer exact API, field, table, enum, and workflow evidence.",
+            ),
+            ("human", "Question:\n{question}\n\nChunks:\n{chunks}"),
+        ]
+    )
+    model = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+    chain = prompt | model.with_structured_output(RerankedChunks)
+    rerank_result = chain.invoke({"question": question, "chunks": _format_chunks_for_prompt(chunks)})
+    scores = {chunk.chunk_id: chunk.relevance_score for chunk in rerank_result.chunks}
+
+    return sorted(
+        chunks,
+        key=lambda chunk: scores.get(_chunk_id(chunk), 0),
+        reverse=True,
+    )
+
+
+def _generate_answer(question: str, chunks: list[dict[str, Any]]) -> RagAnswer:
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Answer using only the provided context. Include citations using the article title and URL. If the context does not answer the question, say what is missing.",
+            ),
+            ("human", "Question:\n{question}\n\nContext:\n{context}"),
+        ]
+    )
+    model = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+    chain = prompt | model.with_structured_output(RagAnswer)
+    return chain.invoke({"question": question, "context": _format_chunks_for_prompt(chunks)})
 
 
 def _format_chunks_for_prompt(chunks: list[dict[str, Any]]) -> str:

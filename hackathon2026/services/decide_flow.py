@@ -5,7 +5,7 @@ from typing import Any
 from hackathon2026.agent import decide_casual_topic_with_agent, decide_flow_with_agent
 from hackathon2026.models.Api import ApiResponse, CasualTopicDecision, PromptRouteDecision
 from hackathon2026.models.User import UserInput
-from hackathon2026.rag import rag_answer_service, request_response_rag_service
+from hackathon2026.rag import answer_casual_question
 from hackathon2026.utils import (
     build_casual_response,
     extract_prompt,
@@ -84,7 +84,9 @@ class DecideFlowService:
             payload = build_casual_response(prompt)
             # Sync path has no LLM call - topic classification uses the local fallback only.
             topic_decision = fallback_casual_topic(prompt)
-            payload["rag"] = self._rag_service_for(topic_decision.topic).answer(prompt)
+            payload["rag"] = answer_casual_question(
+                prompt, include_request_response=topic_decision.topic == "request_response"
+            )
             payload["casual_topic"] = {"topic": topic_decision.topic, "type": "local_fallback"}
 
         payload["router"] = {
@@ -109,7 +111,9 @@ class DecideFlowService:
             payload = build_casual_response(prompt)
             topic_decision, topic_router_type = await self._decide_casual_topic(prompt)
             print(f"[decide_flow] casual_topic_router={topic_router_type} topic={topic_decision.topic}")
-            payload["rag"] = self._rag_service_for(topic_decision.topic).answer(prompt)
+            payload["rag"] = answer_casual_question(
+                prompt, include_request_response=topic_decision.topic == "request_response"
+            )
             payload["casual_topic"] = {"topic": topic_decision.topic, "type": topic_router_type}
 
         payload["router"] = {
@@ -117,9 +121,6 @@ class DecideFlowService:
             "reason": route_decision.reason,
         }
         return payload
-
-    def _rag_service_for(self, topic: str):
-        return request_response_rag_service if topic == "request_response" else rag_answer_service
 
     async def _decide_casual_topic(self, prompt: str) -> tuple[CasualTopicDecision, str]:
         try:
