@@ -1,9 +1,12 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BookingContext(BaseModel):
+    # One entry per executed step (pos/category/cabin/cabin_hold/price/tokenize_card/
+    # create_reservation), in order, whether it succeeded, failed, or needs more input.
+    steps: list[dict[str, Any]] = Field(default_factory=list)
     package_id: int | None = None
     cruiseline_id: int | None = None
     pos_result: dict[str, Any] | None = None

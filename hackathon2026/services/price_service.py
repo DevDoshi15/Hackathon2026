@@ -62,17 +62,17 @@ class PriceService:
         try:
             data = await post_nitro(LIST_PRICES_PATH, body)
         except NitroClientError as error:
-            return _price_result(error=str(error))
+            return _price_result(request=body, error=str(error))
 
         if not data.get("isSucceed"):
             print(f"[price_service] isSucceed=false, raw={data}")
-            return _price_result(raw=data, error="Price reservation did not succeed.")
+            return _price_result(request=body, raw=data, error="Price reservation did not succeed.")
 
         cruise_reservation = data.get("data", {}).get("cruiseReservation", {})
         payment_schedules = cruise_reservation.get("paymentSchedules", {})
         prices = cruise_reservation.get("prices", [])
         print(f"[price_service] success, {len(prices)} price lines")
-        return _price_result(is_succeed=True, payment_schedules=payment_schedules, prices=prices, raw=data)
+        return _price_result(is_succeed=True, request=body, payment_schedules=payment_schedules, prices=prices, raw=data)
 
     def reservation_total(self, prices: list[dict[str, Any]]) -> float:
         # rph == -1 marks a reservation-total line item (vs. a positive rph for one
@@ -84,6 +84,7 @@ def _price_result(
     is_succeed: bool = False,
     payment_schedules: dict | None = None,
     prices: list | None = None,
+    request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
@@ -91,6 +92,7 @@ def _price_result(
         "is_succeed": is_succeed,
         "payment_schedules": payment_schedules or {},
         "prices": prices or [],
+        "request": request,
         "raw": raw,
         "error": error,
     }

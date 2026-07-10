@@ -43,13 +43,30 @@ export function makeAssistantMessage(type, prompt = "") {
         role: "assistant",
         type: "booking",
         booking: {
-          step: "cabin",
-          status: "success",
-          message: "Cabin selected.",
-          data: {
-            Cabin: "9210",
-            Location: "Port",
-            Occupancy: "0-3",
+          steps: [
+            {
+              step: "pos",
+              status: "success",
+              message: "Point-of-sale lookup succeeded.",
+              data: { "POS ID": 2114, Office: "O100US6797", Currency: "USD", Supplier: "RCCL" },
+            },
+            {
+              step: "category",
+              status: "success",
+              message: "Category availability lookup succeeded.",
+              data: { Category: "2B", "Fare code": "BESTPRICE" },
+            },
+            {
+              step: "cabin",
+              status: "success",
+              message: "Cabin availability lookup succeeded.",
+              data: { Cabin: "9210", Location: "Port", Occupancy: "0-3" },
+            },
+          ],
+          requestResponse: {
+            step: "cabin",
+            request: { cruiseReservation: { cruise: { packageId: 1310045 } } },
+            response: { is_succeed: true, cabins: [{ number: "9210", location: "Port" }] },
           },
         },
       }

@@ -76,11 +76,11 @@ class CreateService:
         try:
             data = await post_nitro(CREATE_RESERVATION_PATH, body, timeout=CREATE_TIMEOUT)
         except NitroClientError as error:
-            return _create_result(error=str(error))
+            return _create_result(request=body, error=str(error))
 
         if not data.get("isSucceed"):
             print(f"[create_service] isSucceed=false, raw={data}")
-            return _create_result(raw=data, error="Booking creation did not succeed.")
+            return _create_result(request=body, raw=data, error="Booking creation did not succeed.")
 
         confirmation_number = (
             data.get("data", {})
@@ -89,18 +89,20 @@ class CreateService:
             .get("confirmationNumber")
         )
         print(f"[create_service] success, confirmation_number={confirmation_number}")
-        return _create_result(is_succeed=True, confirmation_number=confirmation_number, raw=data)
+        return _create_result(is_succeed=True, request=body, confirmation_number=confirmation_number, raw=data)
 
 
 def _create_result(
     is_succeed: bool = False,
     confirmation_number: str | None = None,
+    request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     return {
         "is_succeed": is_succeed,
         "confirmation_number": confirmation_number,
+        "request": request,
         "raw": raw,
         "error": error,
     }

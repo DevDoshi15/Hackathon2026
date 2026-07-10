@@ -70,32 +70,37 @@ export function mapResponseToMessage(envelope) {
   }
 }
 
-// Maps one booking-flow payload { flow, step, message, response?, ... } into the
-// shape BookingStepResponse renders. `response` is the most recent Nitro API call's
-// result (POS/category/cabin/hold/price/tokenize/create) - absent entirely when the
-// backend is asking for more info (e.g. a package id) rather than reporting a result.
+// Maps a booking-flow payload { flow, step, message, steps: [...] } into the shape
+// BookingStepResponse renders: one summary per executed step, plus the raw
+// request/response for the last step only (the one it stopped at).
 function mapBookingPayload(payload) {
-  const step = payload.step
-  const response = payload.response
-  const status = !response ? "needs_input" : response.is_succeed ? "success" : "failed"
+  const entries = payload.steps ?? []
 
-  return {
-    step,
-    status,
-    message: payload.message,
-    data: summarizeBookingData(step, payload),
-  }
+  const steps = entries.map((entry) => ({
+    step: entry.step,
+    status: entry.status,
+    message: entry.message,
+    data: summarizeBookingData(entry.step, entry),
+  }))
+
+  const last = entries[entries.length - 1]
+  const requestResponse =
+    last && (last.request || last.response)
+      ? { step: last.step, request: last.request ?? null, response: last.response ?? null }
+      : null
+
+  return { steps, requestResponse }
 }
 
-// Each step's payload carries different "selected_*" convenience fields alongside
-// the raw API response - pull out a small, presentable set of key/value pairs per step
-// rather than dumping the full (often deeply nested) response.
-function summarizeBookingData(step, payload) {
-  const response = payload.response
+// Each step entry carries different "selected_*" convenience fields alongside its raw
+// API response - pull out a small, presentable set of key/value pairs per step rather
+// than dumping the full (often deeply nested) response.
+function summarizeBookingData(step, entry) {
+  const response = entry.response
 
   switch (step) {
     case "pos": {
-      const pos = payload.pos_selected
+      const pos = entry.pos_selected
       if (!pos) return {}
       return {
         "POS ID": pos.id,
@@ -106,12 +111,12 @@ function summarizeBookingData(step, payload) {
     }
     case "category": {
       const data = {}
-      if (payload.selected_category?.code) data["Category"] = payload.selected_category.code
-      if (payload.selected_fare?.fareCode?.code) data["Fare code"] = payload.selected_fare.fareCode.code
+      if (entry.selected_category?.code) data["Category"] = entry.selected_category.code
+      if (entry.selected_fare?.fareCode?.code) data["Fare code"] = entry.selected_fare.fareCode.code
       return data
     }
     case "cabin": {
-      const cabin = payload.selected_cabin
+      const cabin = entry.selected_cabin
       if (!cabin) return {}
       const data = { Cabin: cabin.number }
       if (cabin.location) data["Location"] = cabin.location
@@ -134,7 +139,7 @@ function summarizeBookingData(step, payload) {
       return token ? { Token: `${token.slice(0, 8)}…` } : {}
     }
     case "create_reservation": {
-      const confirmationNumber = response?.confirmation_number
+      const confirmationNumber = entry.confirmation_number
       return confirmationNumber ? { "Confirmation number": confirmationNumber } : {}
     }
     default:

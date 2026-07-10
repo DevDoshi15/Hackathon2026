@@ -47,26 +47,28 @@ class HoldService:
         try:
             data = await post_nitro(HOLD_CABIN_PATH, body)
         except NitroClientError as error:
-            return _hold_result(error=str(error))
+            return _hold_result(request=body, error=str(error))
 
         if not data.get("isSucceed"):
             print(f"[hold_service] isSucceed=false, raw={data}")
-            return _hold_result(raw=data, error="Cabin hold did not succeed.")
+            return _hold_result(request=body, raw=data, error="Cabin hold did not succeed.")
 
         insurances = data.get("data", {}).get("cruiseReservation", {}).get("insurances", [])
         print(f"[hold_service] success, {len(insurances)} insurances")
-        return _hold_result(is_succeed=True, insurances=insurances, raw=data)
+        return _hold_result(is_succeed=True, request=body, insurances=insurances, raw=data)
 
 
 def _hold_result(
     is_succeed: bool = False,
     insurances: list | None = None,
+    request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     return {
         "is_succeed": is_succeed,
         "insurances": insurances or [],
+        "request": request,
         "raw": raw,
         "error": error,
     }

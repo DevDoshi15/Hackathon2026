@@ -41,15 +41,15 @@ class CabinService:
         try:
             data = await post_nitro(LIST_CABINS_PATH, body)
         except NitroClientError as error:
-            return _cabin_result(error=str(error))
+            return _cabin_result(request=body, error=str(error))
 
         if not data.get("isSucceed"):
             print(f"[cabin_service] isSucceed=false, raw={data}")
-            return _cabin_result(raw=data, error="Cabin availability lookup did not succeed.")
+            return _cabin_result(request=body, raw=data, error="Cabin availability lookup did not succeed.")
 
         cabins = data.get("data", {}).get("cruiseReservation", {}).get("cabins", [])
         print(f"[cabin_service] success, {len(cabins)} cabins")
-        return _cabin_result(is_succeed=True, cabins=cabins, raw=data)
+        return _cabin_result(is_succeed=True, request=body, cabins=cabins, raw=data)
 
     def select_cabin(
         self,
@@ -94,12 +94,14 @@ class CabinService:
 def _cabin_result(
     is_succeed: bool = False,
     cabins: list | None = None,
+    request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     return {
         "is_succeed": is_succeed,
         "cabins": cabins or [],
+        "request": request,
         "raw": raw,
         "error": error,
     }

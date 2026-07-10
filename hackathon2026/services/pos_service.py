@@ -22,15 +22,15 @@ class PosService:
         try:
             data = await post_nitro(LIST_POS_PATH, body)
         except NitroClientError as error:
-            return _pos_result(error=str(error))
+            return _pos_result(request=body, error=str(error))
 
         if not data.get("isSucceed"):
             print(f"[pos_service] isSucceed=false, raw={data}")
-            return _pos_result(raw=data, error="POS lookup did not succeed.")
+            return _pos_result(request=body, raw=data, error="POS lookup did not succeed.")
 
         point_of_sales = data.get("data", {}).get("cruiseReservation", {}).get("pointOfSales", [])
         print(f"[pos_service] success, {len(point_of_sales)} pointOfSales entries")
-        return _pos_result(is_succeed=True, point_of_sales=point_of_sales, raw=data)
+        return _pos_result(is_succeed=True, request=body, point_of_sales=point_of_sales, raw=data)
 
     def select_test_pos(self, point_of_sales: list[dict[str, Any]]) -> dict[str, Any]:
         test_pos = [pos for pos in point_of_sales if pos.get("system") == "Test"]
@@ -50,12 +50,14 @@ class PosService:
 def _pos_result(
     is_succeed: bool = False,
     point_of_sales: list | None = None,
+    request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     return {
         "is_succeed": is_succeed,
         "point_of_sales": point_of_sales or [],
+        "request": request,
         "raw": raw,
         "error": error,
     }

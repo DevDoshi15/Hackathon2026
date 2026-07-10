@@ -41,26 +41,28 @@ class TokenizeService:
         try:
             data = await post_nitro(TOKENIZE_CARD_PATH, body)
         except NitroClientError as error:
-            return _tokenize_result(error=str(error))
+            return _tokenize_result(request=body, error=str(error))
 
         if not data.get("isSucceed"):
             print(f"[tokenize_service] isSucceed=false, raw={data}")
-            return _tokenize_result(raw=data, error="Card tokenization did not succeed.")
+            return _tokenize_result(request=body, raw=data, error="Card tokenization did not succeed.")
 
         token = data.get("data", {}).get("token")
         print("[tokenize_service] success, token acquired")
-        return _tokenize_result(is_succeed=True, token=token, raw=data)
+        return _tokenize_result(is_succeed=True, request=body, token=token, raw=data)
 
 
 def _tokenize_result(
     is_succeed: bool = False,
     token: str | None = None,
+    request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     return {
         "is_succeed": is_succeed,
         "token": token,
+        "request": request,
         "raw": raw,
         "error": error,
     }
