@@ -26,6 +26,7 @@ class HoldService:
         farecode: str,
         cabin_number: str,
         pos: dict[str, Any],
+        add_ons: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         body = {
             "cruiseReservation": {
@@ -43,6 +44,10 @@ class HoldService:
             "customers": PLACEHOLDER_CUSTOMERS,
             "trackingInfo": {"token": uuid.uuid4().hex},
         }
+        # autoInclude add-ons (e.g. MSC) must be echoed back as full objects here - see
+        # Category Availability's addOns[].autoInclude and standard_create_booking.md.
+        if add_ons:
+            body["cruiseReservation"]["addOns"] = add_ons
 
         try:
             data = await post_nitro(HOLD_CABIN_PATH, body)
@@ -53,14 +58,26 @@ class HoldService:
             print(f"[hold_service] isSucceed=false, raw={data}")
             return _hold_result(request=body, raw=data, error="Cabin hold did not succeed.")
 
-        insurances = data.get("data", {}).get("cruiseReservation", {}).get("insurances", [])
-        print(f"[hold_service] success, {len(insurances)} insurances")
-        return _hold_result(is_succeed=True, request=body, insurances=insurances, raw=data)
+        cruise_reservation = data.get("data", {}).get("cruiseReservation", {})
+        insurances = cruise_reservation.get("insurances", [])
+        # MSC returns a session-tracking value here that must be echoed back into Create
+        # Reservation's request (cruiseReservation.externalSessionInfo.externalId) - see
+        # standard_create_booking.md. None for suppliers that don't return this.
+        external_session_id = cruise_reservation.get("externalSessionInfo", {}).get("externalId")
+        print(f"[hold_service] success, {len(insurances)} insurances, external_session_id={external_session_id}")
+        return _hold_result(
+            is_succeed=True,
+            request=body,
+            insurances=insurances,
+            external_session_id=external_session_id,
+            raw=data,
+        )
 
 
 def _hold_result(
     is_succeed: bool = False,
     insurances: list | None = None,
+    external_session_id: str | None = None,
     request: dict | None = None,
     raw: dict | None = None,
     error: str | None = None,
@@ -68,6 +85,7 @@ def _hold_result(
     return {
         "is_succeed": is_succeed,
         "insurances": insurances or [],
+        "external_session_id": external_session_id,
         "request": request,
         "raw": raw,
         "error": error,

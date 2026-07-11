@@ -40,6 +40,7 @@ class PriceService:
         category_code: str,
         farecode: str,
         pos: dict[str, Any],
+        add_ons: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         # Cabin number is intentionally not sent - Price Reservation prices at the
         # category+fare level; cabin selection is independent (handled by Hold Cabin).
@@ -58,6 +59,10 @@ class PriceService:
             "customers": PLACEHOLDER_CUSTOMERS,
             "trackingInfo": {"token": uuid.uuid4().hex},
         }
+        # autoInclude add-ons (e.g. MSC) must be echoed back as full objects here - see
+        # Category Availability's addOns[].autoInclude and standard_create_booking.md.
+        if add_ons:
+            body["cruiseReservation"]["addOns"] = add_ons
 
         try:
             data = await post_nitro(LIST_PRICES_PATH, body)

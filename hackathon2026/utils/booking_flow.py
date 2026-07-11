@@ -39,7 +39,14 @@ STEP_KEYWORDS = {
     "pos step": "pos",
     "point of sale": "pos",
     "office credentials": "pos",
+    "farecode step": "farecode",
+    "farecode availability": "farecode",
+    "list farecodes": "farecode",
     "category": "category",
+    "dining step": "dining",
+    "list dining": "dining",
+    "list dinings": "dining",
+    "dining availability": "dining",
     "hold cabin": "cabin_hold",
     "cabin hold": "cabin_hold",
     "cabin": "cabin",
@@ -58,10 +65,14 @@ STEP_KEYWORDS = {
     "confirmation": "create_reservation",
 }
 
+# farecode and dining only apply to certain cruise-line scenarios (e.g. MSC) - they're
+# simply never reached for suppliers whose flow skips them (see BookingOrchestrator.run).
 WORKFLOW_STEPS = [
     "pos",
+    "farecode",
     "category",
     "cabin",
+    "dining",
     "cabin_hold",
     "price",
     "tokenize_card",

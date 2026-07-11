@@ -109,6 +109,13 @@ function summarizeBookingData(step, entry) {
         Supplier: pos.apiId,
       }
     }
+    case "farecode": {
+      const farecode = entry.selected_farecode
+      if (!farecode?.code) return {}
+      const data = { Farecode: farecode.code }
+      if (farecode.name) data["Fare name"] = farecode.name
+      return data
+    }
     case "category": {
       const data = {}
       if (entry.selected_category?.code) data["Category"] = entry.selected_category.code
@@ -121,6 +128,14 @@ function summarizeBookingData(step, entry) {
       const data = { Cabin: cabin.number }
       if (cabin.location) data["Location"] = cabin.location
       if (cabin.occupancy) data["Occupancy"] = `${cabin.occupancy.min ?? "-"}-${cabin.occupancy.max ?? "-"}`
+      return data
+    }
+    case "dining": {
+      const dining = entry.selected_dining
+      if (!dining) return {}
+      const data = {}
+      if (dining.name) data["Dining"] = dining.name
+      if (dining.code) data["Dining code"] = dining.code
       return data
     }
     case "cabin_hold": {

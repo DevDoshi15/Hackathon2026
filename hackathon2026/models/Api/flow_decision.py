@@ -11,8 +11,10 @@ class PromptRouteDecision(BaseModel):
     intent: Literal["booking_workflow", "general_question"]
     step: Literal[
         "pos",
+        "farecode",
         "category",
         "cabin",
+        "dining",
         "cabin_hold",
         "price",
         "tokenize_card",

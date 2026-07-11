@@ -2,6 +2,8 @@ from hackathon2026.services.cabin_service import CabinService, cabin_service
 from hackathon2026.services.category_service import CategoryService, category_service
 from hackathon2026.services.create_service import CreateService, create_service
 from hackathon2026.services.decide_flow import DecideFlowService, decide_flow_service
+from hackathon2026.services.dining_service import DiningService, dining_service
+from hackathon2026.services.farecode_service import FarecodeService, farecode_service
 from hackathon2026.services.hold_service import HoldService, hold_service
 from hackathon2026.services.pos_service import PosService, pos_service
 from hackathon2026.services.price_service import PriceService, price_service
@@ -12,10 +14,14 @@ __all__ = [
     "decide_flow_service",
     "PosService",
     "pos_service",
+    "FarecodeService",
+    "farecode_service",
     "CategoryService",
     "category_service",
     "CabinService",
     "cabin_service",
+    "DiningService",
+    "dining_service",
     "HoldService",
     "hold_service",
     "PriceService",

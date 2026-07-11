@@ -45,9 +45,12 @@ class CreateService:
         category_code: str,
         farecode: str,
         cabin_number: str,
-        card_token: str,
-        amount: float,
         currency: str,
+        card_token: str | None = None,
+        amount: float | None = None,
+        add_ons: list[dict[str, Any]] | None = None,
+        dining: dict[str, Any] | None = None,
+        external_session_id: str | None = None,
     ) -> dict[str, Any]:
         body = {
             "cruiseReservation": {
@@ -64,14 +67,29 @@ class CreateService:
                     }
                 ],
             },
-            "paymentToProcess": {
-                "cardToken": card_token,
-                "amount": amount,
-                "currency": currency,
-            },
             "customers": PLACEHOLDER_CUSTOMERS,
             "trackingInfo": {"token": uuid.uuid4().hex},
         }
+        # Without a card_token, Create Reservation runs without payment (e.g. MSC's
+        # documented flow never calls Tokenize Card) - see the "Create Reservation
+        # (Without Payment)" scenario in create_reservation.md.
+        if card_token:
+            body["paymentToProcess"] = {
+                "cardToken": card_token,
+                "amount": amount,
+                "currency": currency,
+            }
+        # autoInclude add-ons and the full dining object (e.g. MSC) must be echoed back
+        # here - see Category/List Dinings responses and standard_create_booking.md.
+        if add_ons:
+            body["cruiseReservation"]["addOns"] = add_ons
+        if dining:
+            body["cruiseReservation"]["dinings"] = [dining]
+        # MSC's session-tracking value from Hold Cabin's response must be echoed back here
+        # at the reservation level - see standard_create_booking.md. Only confirmed required
+        # for Create (not Price), so it's threaded through this call only.
+        if external_session_id:
+            body["cruiseReservation"]["externalSessionInfo"] = {"externalId": external_session_id}
 
         try:
             data = await post_nitro(CREATE_RESERVATION_PATH, body, timeout=CREATE_TIMEOUT)

@@ -22,12 +22,18 @@ Important distinction:
 
 The booking workflow has exactly these steps, in this order:
 1. pos - resolve the point-of-sale for the sailing (from a package id or cruiseline id).
-2. category - pick a stateroom category and fare code.
-3. cabin - pick a specific cabin number.
-4. cabin_hold - place a temporary hold on that cabin.
-5. price - get the authoritative price and payment schedule.
-6. tokenize_card - tokenize a credit card for payment.
-7. create_reservation - commit the booking with payment and get a confirmation number.
+2. farecode - list available fare codes for the sailing (only reached for certain cruise lines, e.g. MSC).
+3. category - pick a stateroom category and fare code.
+4. cabin - pick a specific cabin number.
+5. dining - pick a dining/seating option (only reached for certain cruise lines, e.g. MSC).
+6. cabin_hold - place a temporary hold on that cabin.
+7. price - get the authoritative price and payment schedule.
+8. tokenize_card - tokenize a credit card for payment.
+9. create_reservation - commit the booking with payment and get a confirmation number.
+
+farecode and dining only apply to some cruise lines - only set step to one of them when the user
+explicitly asks to stop at "farecode step"/"farecode availability" or "dining step"/"list dining".
+Never infer them just because the booking might turn out to be for that cruise line.
 
 There is no step called "package" - mentioning a package id (e.g. "with package id P123")
 only supplies the identifier used to resolve the pos step; it is never itself a request to

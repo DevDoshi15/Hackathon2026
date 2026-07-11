@@ -11,22 +11,31 @@ import {
   Lock,
   Package,
   Receipt,
+  Ticket,
+  UtensilsCrossed,
 } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-// The seven-step booking workflow, mirroring the backend's WORKFLOW_STEPS order:
+// The default flow's 7 steps, mirroring the backend's WORKFLOW_STEPS order:
 // pos -> category -> cabin -> cabin_hold -> price -> tokenize_card -> create_reservation.
+// Some cruise lines (e.g. MSC) add two extra real steps - farecode (before category) and
+// dining (after cabin) - included here so their boxes render correctly when present, but
+// left out of the default progress-bar count (see visibleSteps below).
 const STEPS = [
   { key: "pos", label: "POS", Icon: Package },
+  { key: "farecode", label: "Farecode", Icon: Ticket },
   { key: "category", label: "Category", Icon: LayoutGrid },
   { key: "cabin", label: "Cabin", Icon: BedDouble },
+  { key: "dining", label: "Dining", Icon: UtensilsCrossed },
   { key: "cabin_hold", label: "Hold", Icon: Lock },
   { key: "price", label: "Price", Icon: Receipt },
   { key: "tokenize_card", label: "Payment", Icon: CreditCard },
   { key: "create_reservation", label: "Confirm", Icon: BadgeCheck },
 ]
+
+const MSC_ONLY_STEPS = new Set(["farecode", "dining"])
 
 function stepLabel(key) {
   return STEPS.find((item) => item.key === key)?.label ?? prettyKey(key)
@@ -43,9 +52,13 @@ function prettyKey(key) {
 export default function BookingStepResponse({ booking }) {
   const { steps = [] } = booking
   const last = steps[steps.length - 1]
+  // MSC-only steps (farecode/dining) only count toward the progress bar when this
+  // response actually reached one of them - otherwise the bar stays the familiar 7 steps.
+  const isMscFlow = steps.some((entry) => MSC_ONLY_STEPS.has(entry.step))
+  const visibleSteps = isMscFlow ? STEPS : STEPS.filter((item) => !MSC_ONLY_STEPS.has(item.key))
   const currentIndex = Math.max(
     0,
-    STEPS.findIndex((item) => item.key === last?.step)
+    visibleSteps.findIndex((item) => item.key === last?.step)
   )
 
   return (
@@ -56,13 +69,13 @@ export default function BookingStepResponse({ booking }) {
           Booking workflow
         </span>
         <span className="ml-auto rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">
-          Step {currentIndex + 1} of {STEPS.length}
+          Step {currentIndex + 1} of {visibleSteps.length}
         </span>
       </div>
 
       {/* Progress indicator */}
       <div className="flex items-center px-5 pb-7 pt-4">
-        {STEPS.map((item, index) => {
+        {visibleSteps.map((item, index) => {
           const done = index < currentIndex
           const current = index === currentIndex
           const currentFailed = current && last?.status === "failed"
@@ -142,11 +155,15 @@ export default function BookingStepResponse({ booking }) {
   )
 }
 
+// Cabin Hold and Price Reservation boxes show only the title/status - no description text.
+const STEPS_WITHOUT_DESCRIPTION = new Set(["cabin_hold", "price"])
+
 function StepBox({ entry, requestResponse, isLast }) {
   const { step, status, message, data = {} } = entry
   const entries = Object.entries(data)
   const isFinal = step === "create_reservation" && status === "success"
   const showRequestResponse = isLast && (requestResponse?.request || requestResponse?.response)
+  const showMessage = message && !STEPS_WITHOUT_DESCRIPTION.has(step)
 
   return (
     <div className="px-4 py-3">
@@ -157,7 +174,7 @@ function StepBox({ entry, requestResponse, isLast }) {
         <StatusBadge status={status} />
       </div>
 
-      {message && (
+      {showMessage && (
         <p
           className={cn(
             "mb-2 text-sm",
